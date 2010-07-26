@@ -1,0 +1,52 @@
+<network safeMode="true">
+	<application cmd="/sbin/ip route">Local do ip route</application>
+	<hostGroup>
+		<host name="confiaveis" ip="111.111.111.1/29,192.168.2.0/24,192.168.200.0/24,123.123.123.123,213.213.213,233.233.233.233,200.186.0.0/16">Lans e ips confiáveis</host>
+		<host name="proxy_bypass" ip="200.201.0.0/16,192.168.200.0/24,111.111.111.1/29">caixa economica, rede dmz e rede externa</host>
+	</hostGroup>
+	<portGroup>
+		<port name="portas_baixas" port="0:1023">Portas Baixas</port>
+		<port name="portas_altas" port="1024:65535">Portas Altas</port>
+	</portGroup>
+	<hosts>
+		<host name="www.synack.com.br" ip="200.200.220.220">Site da synack</host>
+		<host name="localhost" ip="127.0.0.1">Localhost</host>
+	</hosts>
+	<nameservers>
+		<nameserver name="dns1" ip="8.8.4.4">Dns Google 1</nameserver>
+		<nameserver name="dns2" ip="8.8.4.4">Dns Google 2</nameserver>
+	</nameservers>
+	<interfaces safeMode="true">
+		<interface name="externa1" physical="eth0" ip="111.111.111.2" netmask="/24"> blabla</interface>
+		<interface name="externa2" physical="eth1" ip="222.222.222.2" netmask="/24"> blabla</interface>
+		<interface name="externa3" physical="eth2" ip="233.233.233.2" netmask="/24"> blabla</interface>
+		<interface name="interna" physical="eth3" ip="192.168.2.1" netmask="/24" masqueradeTo="@ext_firewall"> blabla</interface>
+		<interface name="dmz" physical="eth4" ip="192.168.200.1" netmask="/24"> blabla</interface>
+		<interface name="ext_prod" physical="eth0:0" ip="111.111.111.3" netmask="/24" natOneToOne="192.168.200.2"> blabla</interface>
+		<interface name="ext_mail" physical="eth0:1" ip="111.111.111.4" netmask="/24" natOneToOne="192.168.200.3"> blabla</interface>
+		<interface name="ext_dev" physical="eth0:2" ip="111.111.111.5" netmask="/24" natOneToOne="192.168.200.4"> blabla</interface>
+		<interface name="ext_dir1" physical="eth1:0" ip="111.111.111.6" netmask="/24" natOneToOne="192.168.2.100"> blabla</interface>
+		<interface name="ext_dir2" physical="eth1:1" ip="111.111.111.7" netmask="/24" natOneToOne="192.168.2.110" active="false"> blabla</interface>
+	</interfaces>
+	<tablesRoute safeMode="true">
+		<tableRoute name="link1" mark="100">Telecom 1</tableRoute>
+		<tableRoute name="link2" mark="200">Telecom 2</tableRoute>
+		<tableRoute name="link3" mark="300">Telecom 3</tableRoute>
+	</tablesRoute>
+	<rules safeMode="true">
+		<rule from="@externa1" table="@link1" prio="1">Rule 1</rule>
+		<rule from="0/0" mark="@link1" table="@link1" prio="1">Pacotes marcados link 1</rule>
+		<rule from="0/0" mark="@link2" table="@link2" prio="1">Pacotes marcados link 2</rule>
+		<rule from="0/0" mark="@link3" table="@link3" prio="1" active="false">Pacotes marcados link 3</rule>
+	</rules>
+	<routes safeMode="true">
+		<route destination="default" router="@externa1" netInterface="@externa1" table="link1">Rota padrão</route>
+		<route destination="123.123.123.123" router="@externa1" netInterface="@externa1" table="link2" active="false">Rota 2</route>
+		<route destination="213.212.121.121,212.123.12.1" router="@externa1" netInterface="@externa1" table="link3">Rota 3</route>
+	</routes>
+	<loadBalance destination="default" scope="global">
+		<balance router="@externa1" netInterface="@externa1" weight="1">Link1 para balanciamento</balance>
+		<balance router="@externa2" netInterface="@externa2" weight="1">Link2 para balanciamento</balance>
+		<balance router="@externa3" netInterface="@externa3" weight="1" active="false">Link3 para balanciamento</balance>
+	</loadBalance>
+</network>

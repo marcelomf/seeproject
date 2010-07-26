@@ -1,0 +1,10 @@
+#!/bin/bash
+# @author Marcelo M. Fleury <marcelomf[noSpam]gmail[dot]com>
+# 23/04/2010 19:43:38
+# Code under GPL License Version 2, please respect it. 
+# More information in:
+# http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+# Thank you!
+java=`which java`
+#exec $java -XX:MaxPermSize=16m -Xms8m -Xmx16m -cp see.jar org.synack.see.See $1 $2 $3
+exec $java -cp see.jar org.synack.see.See $1 $2 $3

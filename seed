@@ -1,0 +1,12 @@
+#!/bin/bash
+# @author Marcelo M. Fleury <marcelomf[noSpam]gmail[dot]com>
+# 23/04/2010 19:43:38
+# Code under GPL License Version 2, please respect it. 
+# More information in:
+# http://www.gnu.org/licenses/old-licenses/gpl-2.0.html
+# Thank you!
+java=`which java`
+#exec $java -XX:MaxPermSize=16m -Xms8m -Xmx16m -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8004 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -cp see.jar org.synack.see.Seed $1
+#exec $java -XX:MaxPermSize=16m -Xms8m -Xmx16m -cp see.jar org.synack.see.Seed $1
+su nobody -c "exec $java -XX:MaxPermSize=16m -Xms8m -Xmx16m -cp see.jar org.synack.see.Seed -h" >> seed.log 2>&1 &
+su root -c "exec $java -XX:MaxPermSize=16m -Xms8m -Xmx16m -cp see.jar org.synack.see.Seed -i" >> seed.log 2>&1 &

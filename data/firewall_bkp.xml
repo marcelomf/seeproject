@@ -1,0 +1,62 @@
+<firewall application="iptables" safeMode="true">	
+	<application cmd="/sbin/iptables">Local do iptables</application>
+	<moduleApplication cmd="/sbin/modprobe">Local do modprobe</moduleApplication>
+	<loadModules modules="ip_conntrack,ip_conntrack_ftp,ip_nat_ftp,ip_queue,ip_tables,ipt_LOG,ipt_MARK,
+	ipt_MASQUERADE,ipt_MIRROR,ipt_REDIRECT,ipt_REJECT,ipt_TCPMSS,ipt_TOS,ipt_limit ,ipt_mac,ipt_mark,
+	ipt_multiport,ipt_owner,ipt_state,ipt_tcpmss ,ipt_tos,ipt_unclean,iptable_filter,iptable_mangle,
+	iptable_nat">Modulos necessarios</loadModules>
+	<kernelSets kernelRouting="true" logSpoofing="true" synCookies="false" icmpEchoIgnoreAll="false" icmpEchoIgnoreBroadcast="false" acceptRedirect="false" icmpIgnoreBogusErrorResponse="false" logMartian="false">Ativa roteamento do kernel,loga pacotes spoofados</kernelSets>
+	<rules type="management">
+		<rule specialRule="/sbin/iptables -t mangle -A PREROUTING -i eth3 -j CONNMARK --restore-mark">Marcação de pacotes</rule>
+		<rule chain="prerouting" inputInterface="@interna" protocol="tcp" destinationPort="20,22,25,53,80,110,143,443,10000,3050,3389" target="mark" packetMark="200">Marcação de pacotes</rule>
+		<rule chain="prerouting" inputInterface="@interna" protocol="udp" destinationPort="53" target="mark" packetMark="200">Marcação de pacotes</rule>
+		<rule chain="prerouting" inputInterface="@interna" protocol="tcp" destinationPort="21" target="mark" packetMark="300">Marcação de pacotes</rule>
+	</rules>
+	<rules type="filter">
+		<!-- Regras gerais -->
+		<rule chain="input,output,forward" defaultTarget="accept">Política padrão: dropar pacotes</rule>
+		<rule chain="allowed,forward_interna,fordward_dmz" newChain="true"> Novas Chains</rule>
+		<rule chain="output" protocol="tcp" sourceIp="127.0.0.1/255.0.0.0" tcpFlag="syn" target="accept">Libera loopback</rule>
+		<rule chain="input" protocol="tcp" sourcePort="2001,1986" target="accept" reverseFlow="true">Libera o daemon do seed</rule>
+		<rule chain="input,output,forward" protocol="icmp" icmpType="echo-request" timeLimit="1/s" target="accept">Aceita pacotes icmp echo-request a cada 1 segundo</rule>
+		<rule chain="input,output,forward" protocol="icmp" icmpType="echo-reply" target="accept">Aceita pacotes icmp echo-reply</rule>
+		<rule chain="input" protocol="tcp" destinationPort="22" target="accept" reverseFlow="true">Pacotes tcp com destino ao firewall em portas especificas</rule>
+		<rule chain="input" inputInterface="@dmz,@interna" target="accept" reverseFlow="true">Pacotes com destino ao firewall, vindos da dmz e rede interna</rule>
+		<rule chain="input" protocol="udp" destinationPort="161,5000" target="accept" reverseFlow="true">Ver o porque???</rule>
+		<rule chain="input, forward" sourceIp="@confiaveis" target="accept" reverseFlow="true">Pacotes com destino ao firewall, vindos de hosts confiáveis</rule>
+		<rule chain="output" destinationPort="22,53,80,123,161,3050,5252" target="accept" reverseFlow="true">Portas para o firewall acessar</rule>
+		<!-- Regras destinadas a acesso interno->externo -->
+		<rule chain="forward" protocol="tcp" inputInterface="@interna" sourceIp="@interna" destinationPort="20,21,22,25,53,80,110,143,443,10000,3050,3389,5252" target="accept" reverseFlow="true">Liberando portas tcp para a rede interna acessar</rule>
+		<rule chain="forward" protocol="udp" inputInterface="@interna" sourceIp="@interna" destinationPort="53" target="accept" reverseFlow="true">Liberando portas udp para a rede interna acessar</rule>
+		<rule chain="forward" protocol="tcp" inputInterface="@dmz" sourceIp="@dmz" destinationPort="20,21,22,25,53,80,110,143,443,2005,2703,3306,3050,5252,8734" target="accept" reverseFlow="true">Liberando portas para a dmz acessar</rule>
+		<rule chain="forward" protocol="udp" inputInterface="@dmz" sourceIp="@dmz" destinationPort="53,123,161" target="accept" reverseFlow="true">Liberando portas udp para a dmz acessar</rule>
+		<!-- Regras destinadas a rede DMZ -->
+		<rule chain="forward" protocol="tcp" inputInterface="@externa1" outputInterface="@dmz" destinationIp="@ext_prod[natOneToOne]" destinationPort="53,80,443" target="accept" reverseFlow="true">Liberando portas tcp para serviços que estão no servidor de produção</rule>
+		<rule chain="forward" protocol="tcp" inputInterface="@externa1" outputInterface="@dmz" destinationIp="@ext_mail[natOneToOne]" destinationPort="25,53,110,143" target="accept" reverseFlow="true">Liberando portas tcp para serviços que estão no servidor de mail</rule>
+		<rule chain="forward" protocol="tcp" inputInterface="@externa1" outputInterface="@dmz" destinationIp="@ext_dev[natOneToOne]" destinationPort="20,21,25,53,80,110,143,443,3000" target="accept" reverseFlow="true">Liberando portas para serviços que estão na DMZ</rule>
+		<rule chain="forward" protocol="tcp" inputInterface="@externa1" outputInterface="@dmz" destinationIp="@ext_dev[natOneToOne]" destinationPort="49152:65534" target="accept" reverseFlow="true">Ftp Passive para o desenvolvimento</rule>
+		<rule chain="forward" protocol="udp" inputInterface="@externa1" outputInterface="@dmz" destinationIp="@ext_prod[natOneToOne],@ext_mail[natOneToOne],@ext_dev[natOneToOne]" destinationPort="53" target="accept" reverseFlow="true">Liberando portas para serviços que estão na DMZ, faltando a 5000 para o produção, porque ?</rule>
+		<!-- Regras destinadas a rede interna -->
+		<rule chain="forward" protocol="tcp,udp" inputInterface="@externa1" outputInterface="@interna" destinationIp="@ext_dir1[natOneToOne],@ext_dir2[natOneToOne]" destinationPort="5800,5900" target="accept" reverseFlow="true">Liberando vnc para o diretor1 e para o diretor2</rule>
+		<rule chain="forward" protocol="tcp" inputInterface="@externa1" outputInterface="@interna" destinationIp="@ext_dir1[natOneToOne]" destinationPort="@portas_altas" target="accept" reverseFlow="true">Liberando range de portas altas para torrent na diretoria</rule>
+	</rules>
+	<rules type="nat">
+		<!-- Regras Gerais -->
+		<rule chain="prerouting,postrouting,output" defaultTarget="drop" active="false">Política padrão: dropar pacotes</rule>
+		<rule chain="postrouting" sourceIp="@interna" outputInterface="@externa1" target="masquerade">Mascara ips da rede interna, saindo pela interface externa1</rule>
+		<!-- Proxy transparente -->
+		<rule chain="proxy" newChain="true"> Chain para proxy</rule>
+		<rule chain="prerouting" protocol="tcp" inputInterface="@interna" destinationPort="80" target="proxy">Redirecionando trafego para chain proxy</rule>
+		<rule chain="proxy" destinationIp="@proxy_bypass" target="RETURN">Hosts bypass proxy</rule>
+		<rule chain="proxy" protocol="tcp" destinationPort="80" target="redirect" toPort="3128">Proxy transparente</rule>
+		<!-- Dnat para a rede interna -->
+		<rule chain="prerouting" protocol="tcp,udp" destinationIp="@ext_dir1" destinationPort="5800,5900" target="dnat" toIp="@ext_dir1[natOneToOne]">Vnc externo para diretor</rule>
+		<rule chain="prerouting" protocol="tcp,udp" destinationIp="@ext_dir2" destinationPort="445,139,5800,5900,54591" target="dnat" toIp="@ext_dir2[natOneToOne]">Vnc externo, samba e utorrent para diretor</rule>
+		<!-- NAT 1:1 -->
+		<rule chain="prerouting" destinationIp="@ext_prod" target="dnat" toIp="@ext_prod[natOneToOne]" reverseFlow="true">NAT 1:1 produção</rule>
+		<rule chain="prerouting" destinationIp="@ext_mail" target="dnat" toIp="@ext_mail[natOneToOne]" reverseFlow="true">NAT 1:1 mail</rule>
+		<rule chain="prerouting" destinationIp="@ext_dev" target="dnat" toIp="@ext_dev[natOneToOne]" reverseFlow="true">NAT 1:1 dev</rule>
+		<rule chain="prerouting" destinationIp="@ext_dir2" target="dnat" toIp="@ext_dir2[natOneToOne]" reverseFlow="true" active="false">NAT 1:1 diretor</rule>
+		<rule chain="prerouting" destinationIp="@ext_dir1" target="dnat" toIp="@ext_dir1[natOneToOne]" reverseFlow="true" active="false">NAT 1:1 diretor</rule>
+	</rules>
+</firewall>
