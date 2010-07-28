@@ -29,7 +29,8 @@ public class FirewallInvoke extends UnicastRemoteObject implements InvokeControl
 	public FirewallInvoke() throws RemoteException, Exception
 	{
 		super();
-		firewall = new IptablesFirewall();		
+		System.out.println("Firewall Invoked: "+super.getClientHost());
+		firewall = new IptablesFirewall();
 	}
 
 	@Override
